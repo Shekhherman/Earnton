@@ -3,7 +3,7 @@ services:
     name: earnton-bot
     env: python
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python bot.py"
+    startCommand: "python main.py"
     envVars:
       - key: BOT_TOKEN
         fromSecret: BOT_TOKEN
@@ -13,5 +13,7 @@ services:
         value: "10000"
       - key: DATABASE_URL
         fromSecret: DATABASE_URL
+      - key: APP_BASE_URL
+        fromSecret: APP_BASE_URL
     healthCheckPath: "/health"
     autoDeploy: true
