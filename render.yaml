@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: earnton-bot
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python bot.py"
+    envVars:
+      - key: BOT_TOKEN
+        fromSecret: BOT_TOKEN
+      - key: APP_IS_WEBHOOK
+        value: "true"
+      - key: APP_PORT
+        value: "10000"
+      - key: DATABASE_URL
+        fromSecret: DATABASE_URL
+    healthCheckPath: "/health"
+    autoDeploy: true
