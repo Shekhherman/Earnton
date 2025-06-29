@@ -21,7 +21,8 @@ CREATE TABLE users (
     last_login TIMESTAMP,
     is_admin BOOLEAN DEFAULT FALSE,
     agreement_version TEXT,
-    accepted_agreement BOOLEAN DEFAULT FALSE
+    accepted_agreement BOOLEAN DEFAULT FALSE,
+    agreement_accepted BOOLEAN DEFAULT FALSE
 );
 ```
 

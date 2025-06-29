@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="refresh" content="1;url=https://www.example.com">
+</head>
+<body>
+<script>
+  // Automatically open the video page with custom header via fetch
+  fetch(window.location.href.replace('redirect.html', '') + window.location.search, {
+    headers: {
+      'bypass-tunnel-reminder': '1'
+    }
+  })
+  .then(() => {
+    // Then redirect user to actual video page
+    window.location = window.location.href.replace('redirect.html', '').replace('/redirect.html', '');
+  })
+  .catch(() => alert('Could not bypass password for tunnel.'));
+</script>
+</body>
+</html>

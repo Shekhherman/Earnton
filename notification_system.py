@@ -252,3 +252,127 @@ class NotificationSystem:
         except Exception as e:
             logger.error(f"Error marking notification read: {str(e)}")
             return False
+
+    async def notify_admin(self, context: ContextTypes.DEFAULT_TYPE, message: str) -> None:
+        """Send notification to admin."""
+        try:
+            await context.bot.send_message(
+                chat_id=int(12345), # Replace with actual admin ID
+                text=message
+            )
+        except Exception as e:
+            logger.error(f"Error notifying admin: {str(e)}")
+
+    async def notify_user(self, context: ContextTypes.DEFAULT_TYPE, user_id: int, message: str) -> None:
+        """Send notification to user."""
+        try:
+            await context.bot.send_message(
+                chat_id=user_id,
+                text=message
+            )
+        except Exception as e:
+            logger.error(f"Error notifying user {user_id}: {str(e)}")
+
+    async def notify_all_users(self, context: ContextTypes.DEFAULT_TYPE, message: str) -> None:
+        """Send notification to all users."""
+        try:
+            users = await self.get_all_users()
+            
+            for user in users:
+                try:
+                    await context.bot.send_message(
+                        chat_id=user['id'],
+                        text=message
+                    )
+                except Exception as e:
+                    logger.error(f"Error notifying user {user['id']}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in notify_all_users: {str(e)}")
+            await self.notify_admin(context, f"Error in notify_all_users: {str(e)}")
+
+    async def get_all_users(self) -> List[Dict[str, Any]]:
+        """Get list of all users from database."""
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT id, telegram_id, username
+                FROM users
+            ''')
+            
+            users = []
+            for row in cursor.fetchall():
+                users.append({
+                    'id': row[0],
+                    'telegram_id': row[1],
+                    'username': row[2]
+                })
+            
+            conn.close()
+            return users
+        except Exception as e:
+            logger.error(f"Error getting users: {str(e)}")
+            return []
+
+    def format_message(self, template: str, **kwargs) -> str:
+        """Format message using template and variables."""
+        try:
+            return self.message_templates[template].format(**kwargs)
+        except KeyError:
+            logger.error(f"Unknown message template: {template}")
+            return f"Error: Unknown message template '{template}'"
+        except Exception as e:
+            logger.error(f"Error formatting message: {str(e)}")
+            return f"Error: {str(e)}"
+
+    async def send_notification(self, 
+                              context: ContextTypes.DEFAULT_TYPE, 
+                              user_id: int, 
+                              template: str, 
+                              **kwargs) -> None:
+        """Send formatted notification to user."""
+        try:
+            message = self.format_message(template, **kwargs)
+            await self.notify_user(context, user_id, message)
+        except Exception as e:
+            logger.error(f"Error sending notification: {str(e)}")
+            await self.notify_admin(context, f"Error sending notification: {str(e)}")
+
+    async def send_batch_notifications(self, 
+                                     context: ContextTypes.DEFAULT_TYPE, 
+                                     user_ids: List[int], 
+                                     template: str, 
+                                     **kwargs) -> None:
+        """Send notifications to multiple users in parallel."""
+        tasks = []
+        for user_id in user_ids:
+            tasks.append(
+                self.send_notification(context, user_id, template, **kwargs)
+            )
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def send_error_notification(self, 
+                                    context: ContextTypes.DEFAULT_TYPE, 
+                                    user_id: int, 
+                                    error: Exception) -> None:
+        """Send error notification to user and admin."""
+        try:
+            # Notify user
+            await self.send_notification(
+                context, 
+                user_id, 
+                'error', 
+                error=str(error)
+            )
+            
+            # Notify admin
+            await self.notify_admin(
+                context, 
+                f"Error for user {user_id}: {str(error)}"
+            )
+        except Exception as e:
+            logger.error(f"Error sending error notification: {str(e)}")
+
+# Initialize notification system
+notification_system = NotificationSystem('/Users/shekhherman/Desktop/Telegram bot/notification_system.db')

@@ -4,7 +4,7 @@ import sqlite3
 import shutil
 import datetime
 import zipfile
-from typing import Optional
+from typing import Optional, List
 import boto3
 from botocore.exceptions import NoCredentialsError
 
