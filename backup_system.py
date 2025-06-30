@@ -95,9 +95,88 @@ class BackupSystem:
             )
             self.bucket_name = bucket_name
             logger.info("S3 client setup successfully")
+            # Test connection
+            try:
+                self.s3_client.list_buckets()
+            except Exception as e:
+                logger.error(f"Unable to connect to S3: {str(e)}")
+                self.s3_client = None
+                raise
         except NoCredentialsError:
             logger.error("AWS credentials not found")
+            raise
         except Exception as e:
+            logger.error(f"S3 setup error: {str(e)}")
+            raise
+
+    def upload_to_s3(self, backup_file: str) -> bool:
+        """Upload backup to S3."""
+        if not self.s3_client or not hasattr(self, 'bucket_name'):
+            logger.error("S3 client not initialized")
+            return False
+            
+        try:
+            file_name = os.path.basename(backup_file)
+            
+            # Upload with encryption
+            self.s3_client.upload_file(
+                backup_file,
+                self.bucket_name,
+                file_name,
+                ExtraArgs={'ServerSideEncryption': 'AES256'}
+            )
+            
+            logger.info(f"Backup uploaded to S3: {file_name}")
+            return True
+            
+        except NoCredentialsError:
+            logger.error("AWS credentials not found")
+            return False
+        except Exception as e:
+            logger.error(f"S3 upload error: {str(e)}")
+            return False
+
+    def download_from_s3(self, backup_name: str, target_dir: str) -> str:
+        """Download backup from S3."""
+        if not self.s3_client or not hasattr(self, 'bucket_name'):
+            logger.error("S3 client not initialized")
+            return ""
+            
+        try:
+            local_path = os.path.join(target_dir, backup_name)
+            self.s3_client.download_file(
+                self.bucket_name,
+                backup_name,
+                local_path
+            )
+            logger.info(f"Downloaded backup from S3: {backup_name}")
+            return local_path
+            
+        except Exception as e:
+            logger.error(f"S3 download error: {str(e)}")
+            return ""
+
+    def cleanup_old_backups(self, max_age_days: int = 7) -> None:
+        """Remove backups older than max_age_days."""
+        try:
+            current_time = datetime.datetime.now()
+            min_age = current_time - datetime.timedelta(days=max_age_days)
+            
+            for file_name in os.listdir(self.backup_dir):
+                if file_name.endswith('.zip'):
+                    file_path = os.path.join(self.backup_dir, file_name)
+                    file_time = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+                    
+                    if file_time < min_age:
+                        try:
+                            os.remove(file_path)
+                            logger.info(f"Removed old backup: {file_name}")
+                        except Exception as e:
+                            logger.error(f"Error removing {file_name}: {str(e)}")
+                            
+        except Exception as e:
+            logger.error(f"Backup cleanup error: {str(e)}")
+            raise
             logger.error(f"Error setting up S3: {str(e)}")
 
     def upload_to_s3(self, backup_file: str) -> bool:

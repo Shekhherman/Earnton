@@ -33,24 +33,85 @@ class CacheSystem:
 
     async def cleanup_expired(self):
         """Clean up expired cache entries."""
-        now = datetime.now()
-        
-        # Clean up in-memory cache
-        for key, entry in list(self.cache.items()):
-            if entry['expiry'] < now:
-                del self.cache[key]
-        
-        # Clean up cache files
-        for file_path in self.cache_dir.glob('*.json'):
-            try:
-                with open(file_path, 'r') as f:
-                    data = json.load(f)
-                    expiry = datetime.fromisoformat(data['expiry'])
-                    if expiry < now:
-                        file_path.unlink()
-            except Exception as e:
-                logger.error(f"Error cleaning up cache file {file_path}: {str(e)}")
-                continue
+        try:
+            now = datetime.now()
+            
+            # Clean up in-memory cache
+            async with self.lock:
+                for key, entry in list(self.cache.items()):
+                    if entry['expiry'] < now:
+                        del self.cache[key]
+            
+            # Clean up cache files
+            for file_path in self.cache_dir.glob('*.json'):
+                try:
+                    async with aiofiles.open(file_path, 'r') as f:
+                        data = json.loads(await f.read())
+                        expiry = datetime.fromisoformat(data['expiry'])
+                        if expiry < now:
+                            await asyncio.to_thread(file_path.unlink)
+                except json.JSONDecodeError:
+                    logger.error(f"Invalid JSON in cache file: {file_path}")
+                    await asyncio.to_thread(file_path.unlink)
+                except Exception as e:
+                    logger.error(f"Error cleaning cache file {file_path}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in cleanup_expired: {str(e)}")
+            raise
+
+    async def get(self, key: str) -> Optional[dict]:
+        """Get cached value with proper error handling."""
+        try:
+            async with self.lock:
+                if key in self.cache:
+                    entry = self.cache[key]
+                    if entry['expiry'] > datetime.now():
+                        return entry['value']
+                    else:
+                        del self.cache[key]
+            return None
+        except Exception as e:
+            logger.error(f"Error getting cache value for {key}: {str(e)}")
+            return None
+
+    async def set(self, key: str, value: dict, ttl: int = 3600) -> None:
+        """Set cache value with proper error handling."""
+        try:
+            async with self.lock:
+                self.cache[key] = {
+                    'value': value,
+                    'expiry': datetime.now() + timedelta(seconds=ttl)
+                }
+                
+                # Save to disk
+                file_path = self.cache_dir / f"{key}.json"
+                async with aiofiles.open(file_path, 'w') as f:
+                    await f.write(json.dumps({
+                        'value': value,
+                        'expiry': (datetime.now() + timedelta(seconds=ttl)).isoformat()
+                    }))
+        except Exception as e:
+            logger.error(f"Error setting cache value for {key}: {str(e)}")
+            raise
+
+    async def invalidate(self, key: str) -> None:
+        """Invalidate cache entry."""
+        try:
+            async with self.lock:
+                if key in self.cache:
+                    del self.cache[key]
+                
+                file_path = self.cache_dir / f"{key}.json"
+                if file_path.exists():
+                    await asyncio.to_thread(file_path.unlink)
+        except Exception as e:
+            logger.error(f"Error invalidating cache for {key}: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"Error cleaning cache file {file_path}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in cleanup_expired: {str(e)}")
+            raise
 
     async def get_cached_result(self, key: str) -> Optional[dict]:
         """Get cached result by key."""

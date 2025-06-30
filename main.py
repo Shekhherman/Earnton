@@ -90,7 +90,15 @@ async def startup_event():
     dp = start_bot()
     
     # Set webhook
-    webhook_url = f"https://{os.getenv('APP_BASE_URL')}/webhook"
+    app_base_url = os.getenv('APP_BASE_URL')
+    if not app_base_url:
+        raise ValueError("APP_BASE_URL environment variable is not set")
+    
+    # Validate URL format
+    if not app_base_url.startswith(('http://', 'https://')):
+        raise ValueError("APP_BASE_URL must start with http:// or https://")
+    
+    webhook_url = f"{app_base_url}/webhook"
     await bot.set_webhook(webhook_url)
 
 @app.post("/webhook")

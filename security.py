@@ -191,16 +191,20 @@ class SecurityManager:
                 100000
             )
             return calculated_key.hex() == key
-        except:
+        except (ValueError, IndexError) as e:
+            logger.error(f"Password verification error: {str(e)}")
             return False
 
     def get_user_ip(self, update: Any) -> Optional[str]:
         """Get user's IP address from update."""
         try:
+            # Get IP from message
             if update.message:
                 return update.message.effective_chat.id
+            # Get IP from callback query
             elif update.callback_query:
                 return update.callback_query.message.effective_chat.id
             return None
-        except:
+        except AttributeError as e:
+            logger.warning(f"Could not get IP from update: {str(e)}")
             return None

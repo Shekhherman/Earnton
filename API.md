@@ -4,14 +4,43 @@
 
 The TON Reward Bot API provides endpoints for managing users, videos, and rewards.
 
+## Security
+
+### Rate Limiting
+- 60 requests per minute per user
+- 1000 requests per hour per IP
+- Excessive requests will be blocked
+
+### Security Headers
+- X-Content-Type-Options: nosniff
+- X-Frame-Options: DENY
+- X-XSS-Protection: 1; mode=block
+- Referrer-Policy: strict-origin-when-cross-origin
+- Content-Security-Policy: default-src 'self'
+
+### Input Validation
+- All requests are validated for length and format
+- File uploads are limited to 50MB
+- Message length is limited to 4096 characters
+
 ## Authentication
 
-All API endpoints require authentication using an API token.
+All API endpoints require authentication using an API token and rate limiting.
 
 ### Headers
 ```
 Authorization: Bearer YOUR_API_TOKEN
+X-Rate-Limit-Limit: 60
+X-Rate-Limit-Remaining: 59
+X-Rate-Limit-Reset: 1628534400
 ```
+
+### Error Responses
+- 429 Too Many Requests
+- 401 Unauthorized
+- 403 Forbidden
+- 400 Bad Request
+- 500 Internal Server Error
 
 ## Endpoints
 
@@ -38,9 +67,23 @@ Response:
     "user_id": "integer",
     "username": "string",
     "points": "integer",
-    "balance": "float"
+    "balance": "float",
+    "next_daily_bonus": "iso8601_date"
 }
 ```
+
+### Security Features
+- Rate limiting (10 checks per hour)
+- Input validation
+- SQL injection prevention
+- XSS protection
+- CSRF protection
+
+### Error Handling
+- All errors are logged
+- Sensitive data is sanitized
+- Retry mechanism (3 attempts with 1s delay)
+- Transaction management
 
 #### Login User
 ```

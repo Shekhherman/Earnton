@@ -2,14 +2,11 @@
   "name": "telegram-bot",
   "version": "1.0.0",
   "description": "Telegram bot for TON cryptocurrency rewards",
-  "main": "index.js",
+  "main": "bot.py",
   "scripts": {
-    "start": "node index.js"
+    "start": "python bot.py"
   },
   "dependencies": {
-    "node-telegram-bot-api": "^0.71.0",
-    "axios": "^1.6.7",
-    "sqlite3": "^5.1.6",
     "dotenv": "^16.4.7"
   }
 }

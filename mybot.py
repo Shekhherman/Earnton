@@ -312,7 +312,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     "Welcome back!\n\n"
                     f"GPT Username: {gpt_username}\n"
                     f"GPT Balance: {balance}\n"
-                    f"GPT Status: {status}\n\n"
+                    f"GPT Status: {status}\n\n")
 
 async def confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Confirm registration/login."""

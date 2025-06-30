@@ -5,10 +5,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Bot Configuration
-TELEGRAM_BOT_TOKEN = "8007737333:AAGUpM7h2zy5-ct3oGYuP1yb3VQhOxbmFe0"
-ADMIN_ID = 666042316
-TON_API_KEY = "43ef38c11649250fe2bf890d8952aec6cd328e81ec1016519fadbe328587567f"
-TON_API_URL = "https://api.ton.org/v3"
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+ADMIN_ID = int(os.getenv('ADMIN_ID', '666042316'))
+TON_API_KEY = os.getenv('TON_API_KEY')
+TON_API_URL = os.getenv('TON_API_URL', 'https://api.ton.org/v3')
+
+# Validate required environment variables
+required_env_vars = ['TELEGRAM_BOT_TOKEN', 'TON_API_KEY']
+for var in required_env_vars:
+    if not os.getenv(var):
+        raise ValueError(f"Required environment variable {var} is not set")
 
 # Database Configuration
 DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'botdata.db')
